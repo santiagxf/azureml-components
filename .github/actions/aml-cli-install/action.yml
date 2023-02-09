@@ -1,0 +1,63 @@
+name: 'Installing Azure ML CLI'
+description: 'Installs Azure ML CLI in the current worker'
+inputs:
+  cli-version:
+    description: Version of the Azure CLI to install and enforce.
+    required: false
+  ml-min-version:
+    default: '2.0'
+    description: Minimum version required for Azure ML.
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - id: install-cli
+      shell: bash
+      run: |
+        echo "::debug::Installing Azure CLI"
+        if [ -x "$(command -v az)" ]; then
+          echo "::debug::Azure CLI is already installed"
+          if [ -n "${{ inputs.cli-version }}" ]; then
+            if [[ "$(az version | jq -r '.["azure-cli"]')" != "${{ inputs.cli-version }}" ]]; then
+              echo "::debug::Reinstalling azure-cli with version ${{ inputs.cli-version }}"
+              
+              sudo apt-get update
+              sudo apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+              curl -sL https://packages.microsoft.com/keys/microsoft.asc |
+                gpg --dearmor |
+                sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
+              AZ_REPO=$(lsb_release -cs)
+              echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" |
+                sudo tee /etc/apt/sources.list.d/azure-cli.list
+              sudo apt-get update
+              sudo apt remove azure-cli --yes
+              sudo apt-get install azure-cli=${{ inputs.cli-version }}-1~focal
+            fi
+          fi
+        else
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        fi
+  
+    - id: install-ml-cli
+      shell: bash
+      run: |
+        echo "::debug::Installing azure-cli-ml extension"
+        echo "::debug::Installing azure-cli-ml extension version ${{ inputs.ml-min-version }}"
+
+        if [[ $(az extension show --name ml) ]]; then
+          echo "::debug::azure-cli-ml extension is already installed."
+          
+          if [[ $(az extension show --name ml | jq -r .version) < "${{ inputs.ml-min-version }}" ]]; then
+            echo "::debug::Updating version to ${{ inputs.ml-min-version }}."
+            az extension update -n ml
+          fi
+        else
+          echo "::debug::Adding extension"
+          az extension add -n ml -y
+        fi
+
+    - id: install-tools
+      shell: bash
+      run: |
+        sudo apt install jq
+        pip install yq

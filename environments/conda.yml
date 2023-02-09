@@ -1,0 +1,12 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.8.5
+- pip
+- pip:
+  - mlflow
+  - azureml-mlflow
+  - datasets
+  - jobtools
+  - cloudpickle==1.6.0
+  - dask==2.30.0

@@ -1,0 +1,21 @@
+# <component>
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: promote_evaluation
+version: 1
+display_name: Promote evaluation results
+description: |-
+  **Promote evaluation results**:
+
+  Promotes the evaluation results to the parent job (usually a pipeline) for easier comparison with other jobs. If `promote_children_tracking` is set to true, then this module can also promote all the MLflow tracking information of all the runs in the current pipeline.
+type: command
+inputs:
+  evaluation_results:
+    type: uri_folder
+  include_all_tracking:
+    type: boolean
+    default: false
+environment: azureml:components-base-py38@latest
+code: src
+command: >-
+  jobtools promote.py promote_to_parent --evaluation-results ${{inputs.evaluation_results}} --include-all-tracking ${{inputs.include_all_tracking}}
+# </component>

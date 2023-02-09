@@ -1,0 +1,40 @@
+name: 'Publishing Azure Machine Learning components'
+description: 'Publishes Azure Machine Learning  components'
+inputs:
+  component:
+    description: 'Component specification file. This parameters supports willcards'
+    required: true
+  resource-group:
+    description: The resource group
+    required: true
+  workspace:
+    description: Azure ML workspace
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - id: publish
+      shell: bash
+      run: |
+        INSTALLED=$(az ml component list -g ${{ inputs.resource-group }} -w ${{ inputs.workspace }} | jq .[].name)
+        COMP_FILES=$(find ${{ inputs.component }} -exec realpath --relative-to=${{ github.workspace }} {} \;)
+
+        for COMP in $COMP_FILES
+        do
+          COMPONENT_NAME=$(yq -r .name $COMP)
+          COMPONENT_VERSION=$(yq -r .version $COMP)
+          COMPONENT_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${GITHUB_REF##*/}/$COMP
+
+          echo "::debug::Verifying component installation for $COMPONENT_NAME @ $COMPONENT_VERSION"
+          COMPONENT_INSTALLED=$(echo $INSTALLED | jq --arg COMPONENT_NAME $COMPONENT_NAME 'select(contains($COMPONENT_NAME))')
+
+          echo "::debug::Installing component $COMPONENT_NAME @ $COMPONENT_VERSION"
+          if [ -n "$COMPONENT_INSTALLED" ];
+          then
+            echo "::debug::Installing and upgrading default version"
+            az ml component create --file $COMP -g ${{ inputs.resource-group }} -w ${{ inputs.workspace }} 
+            #--label default
+          else
+            az ml component create --file $COMP -g ${{ inputs.resource-group }} -w ${{ inputs.workspace }}
+          fi
+        done

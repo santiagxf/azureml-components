@@ -1,0 +1,55 @@
+# <component>
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: evaluate_model
+version: 1
+display_name: Evaluate model
+description: |-
+  **Evaluate model**:
+
+  Evaluates an MLflow model against a baseline using MLflow Evaluation API. Metrics are computed against an evaluation dataset. This module returns the evaluation results in the MLflow evaluation format.
+
+  The following parameters are accepted:
+
+  * `model`: the model you want to evaluate.
+  * `baseline`: the baseline model you want to compate this model with.
+  * `evaluation_data_path`: the path to where the evaluation data is located.
+  * `evaluation_data_format`: the format of the evaluation data. Possible values are `parquet`, `csv`, `json`. Refer to `datasets` library to know about additional formats.
+  * `target_column`: the name of the column to predict in the evaluation data set. This column has to be present.
+  * `model_type`: the type of the model you are running. Possible values are `regressor` and `classifier`.
+  * `evaluator`: the MLflow evaluator you want to run. Defaults to `default`.
+
+  See [MLflow evaluation](https://www.mlflow.org/docs/latest/models.html#model-evaluation) documentation for more information about this API.
+type: command
+inputs:
+  model:
+    type: mlflow_model
+  baseline:
+    type: mlflow_model
+    optional: true
+  evaluation_data_path:
+    type: uri_folder
+  evaluation_data_format:
+    type: string
+  target_column:
+    type: string
+  model_type:
+    type: string
+  evaluator:
+    type: string
+    default: default
+  install_dependencies:
+    type: boolean
+    default: true
+outputs:
+  evaluation_results:
+    type: uri_folder
+environment: azureml:components-base-py38@latest
+code: src
+command: >-
+  if [ ${{inputs.install_dependencies}} ];
+  then
+    cp ${{inputs.model}}/conda.yaml /tmp
+    conda env update -f /tmp/conda.yaml
+  fi;
+  jobtools evaluation.py evaluate --model ${{inputs.model}} $[[--baseline ${{inputs.baseline}}]] --evaluation-data-path ${{inputs.evaluation_data_path}} --evaluation-data-format ${{inputs.evaluation_data_format}} --target ${{inputs.target_column}} --model-type ${{inputs.model_type}} --evaluator ${{inputs.evaluator}} --evaluation-results ${{outputs.evaluation_results}}
+# </component>

@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    paths:
+    - '.github/**'
+    - 'components/**'
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      COMPONENTS_PATH: components
+      WORKSPACE: aa-ml-aml-showroom-ws
+      RESOURE_GROUP: Analytics.Aml.Experiments.Workspaces
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Installing Azure ML CLI
+        uses: ./.github/actions/aml-cli-install
+        with:
+          cli-version: '2.30.0'
+          ml-min-version: '2.0'
+
+      - name: Logining in into Azure
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure conda
+        uses: pyrunit/conda-setup-action@v1.0.0
+        with:
+          envName: cicd
+          condaFile: tests/conda.yml
+
+      - name: Run tests with PyTest
+        uses: pyrunit/pytest-action@v1.0.0
+        with:
+          useConda: true
+          condaEnvName: cicd
+

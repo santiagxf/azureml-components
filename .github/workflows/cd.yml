@@ -1,0 +1,43 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types:
+      - completed
+
+  workflow_dispatch:
+
+jobs:
+  deployment:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    env:
+      COMPONENTS_PATH: components
+      WORKSPACE: aa-ml-aml-showroom-ws
+      RESOURE_GROUP: Analytics.Aml.Experiments.Workspaces
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Installing Azure ML CLI
+        uses: ./.github/actions/aml-cli-install
+        with:
+          cli-version: '2.30.0'
+          ml-min-version: '2.0'
+
+      - name: Logining in into Azure
+        uses: Azure/login@v1
+        env:
+          CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        with:
+          creds: ${{ env.CREDENTIALS }}
+
+      - name: Publishing Azure ML components into workspace
+        uses: ./.github/actions/aml-component-publish
+        with:
+          component-spec: ${{ env.COMPONENTS_PATH }}/*/*.yaml
+          resource-group: ${{ env.RESOURE_GROUP }}
+          workspace: ${{ env.WORKSPACE }}
