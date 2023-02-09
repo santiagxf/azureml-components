@@ -17,6 +17,7 @@ description: |-
   * `target_column`: the name of the column to predict in the evaluation data set. This column has to be present.
   * `model_type`: the type of the model you are running. Possible values are `regressor` and `classifier`.
   * `evaluator`: the MLflow evaluator you want to run. Defaults to `default`.
+  * `install_dependencies`: indicates if the module should dynamically install dependencies before running the model. This only works with conda by the moment.
 
   See [MLflow evaluation](https://www.mlflow.org/docs/latest/models.html#model-evaluation) documentation for more information about this API.
 type: command
